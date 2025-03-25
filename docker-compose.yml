@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: video_converter_bot
+    volumes:
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_USER_IDS=${ADMIN_USER_IDS}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB}
+      - TELEGRAM_API_URL=http://bot-api:8081
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - bot-api
+
+  bot-api:
+    image: aiogram/telegram-bot-api:latest
+    environment:
+      - TELEGRAM_LOCAL=1
+      - BOT_TOKEN=${BOT_TOKEN}
+      - TELEGRAM_API_ID=${API_ID}
+      - TELEGRAM_API_HASH=${API_HASH}
+    volumes:
+      - ./temp:/tmp/temp
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
+    ports:
+      - "8081:8081"
+    restart: unless-stopped 
+
+volumes:
+  telegram-bot-api-data: 
