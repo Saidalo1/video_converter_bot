@@ -76,8 +76,14 @@ async def handle_video_upload(message: Message, state: FSMContext) -> None:
         )
         return
     
+    # Store original message ID in state
+    await state.update_data(original_message_id=message.message_id)
+    
     # Tell user we're processing their video
-    processing_msg = await message.answer("⏳ Получаю видео...")
+    processing_msg = await message.answer(
+        "⏳ Получаю видео...",
+        reply_to_message_id=message.message_id
+    )
     
     try:
         # Download the video
@@ -134,8 +140,14 @@ async def handle_video_url(message: Message, state: FSMContext) -> None:
         )
         return
     
+    # Store original message ID in state
+    await state.update_data(original_message_id=message.message_id)
+    
     # Tell user we're processing their URL
-    processing_msg = await message.answer("⏳ Загружаю видео по ссылке...")
+    processing_msg = await message.answer(
+        "⏳ Загружаю видео по ссылке...",
+        reply_to_message_id=message.message_id
+    )
     
     try:
         # Download the video
@@ -189,7 +201,8 @@ async def show_operation_options(message: Message, reply_to_message_id: Optional
     else:
         await message.answer(
             "🎬 Выберите операцию, которую нужно выполнить с видео:",
-            reply_markup=kb.as_markup()
+            reply_markup=kb.as_markup(),
+            reply_to_message_id=message.message_id
         )
 
 
@@ -673,9 +686,13 @@ async def process_video(message: Union[Message, CallbackQuery], state: FSMContex
     if isinstance(message, CallbackQuery):
         msg = message.message
         chat_id = message.message.chat.id
+        # Get the original video message ID from state
+        data = await state.get_data()
+        original_message_id = data.get("original_message_id")
     else:
         msg = message
         chat_id = message.chat.id
+        original_message_id = message.message_id
     
     # Get state data
     data = await state.get_data()
@@ -759,18 +776,20 @@ async def process_video(message: Union[Message, CallbackQuery], state: FSMContex
                 else:
                     logger.error(f"TelegramBadRequest in process_video: {e}")
         
-        # Send file based on type
+        # Send file based on type with reply to original message
         if operation == "extract_audio":
             await msg.bot.send_audio(
                 chat_id=chat_id,
                 audio=FSInputFile(result_file),
-                caption=f"{i18n['extract_audio_operation']['caption']} ({data.get('audio_format').upper()}, {data.get('bitrate')})"
+                caption=f"{i18n['extract_audio_operation']['caption']} ({data.get('audio_format').upper()}, {data.get('bitrate')})",
+                reply_to_message_id=original_message_id
             )
         else:
             await msg.bot.send_video(
                 chat_id=chat_id,
                 video=FSInputFile(result_file),
-                caption=f"{i18n['common']['video_result']} {operation_text}"
+                caption=f"{i18n['common']['video_result']} {operation_text}",
+                reply_to_message_id=original_message_id
             )
         
         # Cleanup temporary files
