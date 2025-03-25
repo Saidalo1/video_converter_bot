@@ -350,32 +350,40 @@ async def process_format_selection(callback: CallbackQuery, state: FSMContext) -
         callback: Callback query
         state: FSM context for the user
     """
-    # Extract the selected format
-    format_value = callback.data.split(":")[1]
-    
-    # Проверяем действие пользователя
-    if format_value == "cancel":
-        i18n = await get_i18n_for_user(callback.from_user.id)
-        await callback.message.edit_text(i18n["common"]["operation_canceled"])
+    try:
+        # Extract the selected format
+        format_value = callback.data.split(":")[1]
+        
+        # Проверяем действие пользователя
+        if format_value == "cancel":
+            i18n = await get_i18n_for_user(callback.from_user.id)
+            await callback.message.edit_text(i18n["common"]["operation_canceled"])
+            await state.clear()
+            await callback.answer()
+            return
+        elif callback.data == "operation:back":
+            # Возвращаемся к выбору операции
+            await show_operation_options(callback.message, reply_to_message_id=callback.message.message_id)
+            await callback.answer()
+            return
+        
+        # Store the format in state
+        await state.update_data(target_format=format_value)
+        
+        # Отвечаем на callback до начала длительной операции
+        await callback.answer()
+        
+        # Убираем клавиатуру и начинаем обработку
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await process_video(callback.message, state)
+        
+    except Exception as e:
+        logger.error(f"Error in process_format_selection: {e}")
+        try:
+            await callback.answer()
+        except:
+            pass
         await state.clear()
-        await callback.answer()
-        return
-    elif callback.data == "operation:back":
-        # Возвращаемся к выбору операции
-        await show_operation_options(callback.message, reply_to_message_id=callback.message.message_id)
-        await callback.answer()
-        return
-    
-    # Store the format in state
-    await state.update_data(target_format=format_value)
-    
-    # Process the video
-    # Добавляем очистку клавиатуры ответа
-    await callback.message.edit_reply_markup(reply_markup=None)
-    await process_video(callback.message, state)
-    
-    # Answer the callback query
-    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("quality:"), StateFilter(VideoProcessingStates.waiting_for_quality))
@@ -387,30 +395,40 @@ async def process_quality_selection(callback: CallbackQuery, state: FSMContext) 
         callback: Callback query
         state: FSM context for the user
     """
-    # Extract the selected quality
-    quality = callback.data.split(":")[1]
-    
-    # Проверяем действие пользователя
-    if quality == "cancel":
-        i18n = await get_i18n_for_user(callback.from_user.id)
-        await callback.message.edit_text(i18n["common"]["operation_canceled"])
+    try:
+        # Extract the selected quality
+        quality = callback.data.split(":")[1]
+        
+        # Проверяем действие пользователя
+        if quality == "cancel":
+            i18n = await get_i18n_for_user(callback.from_user.id)
+            await callback.message.edit_text(i18n["common"]["operation_canceled"])
+            await state.clear()
+            await callback.answer()
+            return
+        elif callback.data == "operation:back":
+            # Возвращаемся к выбору операции
+            await show_operation_options(callback.message, reply_to_message_id=callback.message.message_id)
+            await callback.answer()
+            return
+        
+        # Store the quality in state
+        await state.update_data(quality=quality)
+        
+        # Отвечаем на callback до начала длительной операции
+        await callback.answer()
+        
+        # Убираем клавиатуру и начинаем обработку
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await process_video(callback.message, state)
+        
+    except Exception as e:
+        logger.error(f"Error in process_quality_selection: {e}")
+        try:
+            await callback.answer()
+        except:
+            pass
         await state.clear()
-        await callback.answer()
-        return
-    elif callback.data == "operation:back":
-        # Возвращаемся к выбору операции
-        await show_operation_options(callback.message, reply_to_message_id=callback.message.message_id)
-        await callback.answer()
-        return
-    
-    # Store the quality in state
-    await state.update_data(quality=quality)
-    
-    # Process the video
-    await process_video(callback.message, state)
-    
-    # Answer the callback query
-    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("audio_format:"), StateFilter(VideoProcessingStates.waiting_for_audio_format))
@@ -471,30 +489,40 @@ async def process_bitrate_selection(callback: CallbackQuery, state: FSMContext) 
         callback: Callback query
         state: FSM context for the user
     """
-    # Extract the selected bitrate
-    bitrate = callback.data.split(":")[1]
-    
-    # Проверяем действие пользователя
-    if bitrate == "cancel":
-        i18n = await get_i18n_for_user(callback.from_user.id)
-        await callback.message.edit_text(i18n["common"]["operation_canceled"])
+    try:
+        # Extract the selected bitrate
+        bitrate = callback.data.split(":")[1]
+        
+        # Проверяем действие пользователя
+        if bitrate == "cancel":
+            i18n = await get_i18n_for_user(callback.from_user.id)
+            await callback.message.edit_text(i18n["common"]["operation_canceled"])
+            await state.clear()
+            await callback.answer()
+            return
+        elif callback.data == "audio_format:back":
+            # Возвращаемся к выбору формата аудио
+            await handle_extract_audio_operation(callback, state)
+            await callback.answer()
+            return
+        
+        # Store the bitrate in state
+        await state.update_data(bitrate=bitrate)
+        
+        # Отвечаем на callback до начала длительной операции
+        await callback.answer()
+        
+        # Убираем клавиатуру и начинаем обработку
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await process_video(callback.message, state)
+        
+    except Exception as e:
+        logger.error(f"Error in process_bitrate_selection: {e}")
+        try:
+            await callback.answer()
+        except:
+            pass
         await state.clear()
-        await callback.answer()
-        return
-    elif callback.data == "audio_format:back":
-        # Возвращаемся к выбору формата аудио
-        await handle_extract_audio_operation(callback, state)
-        await callback.answer()
-        return
-    
-    # Store the bitrate in state
-    await state.update_data(bitrate=bitrate)
-    
-    # Process the video
-    await process_video(callback.message, state)
-    
-    # Answer the callback query
-    await callback.answer()
 
 
 def parse_time_format(time_str: str) -> float:
