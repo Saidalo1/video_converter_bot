@@ -689,23 +689,9 @@ async def process_video(message: Union[Message, CallbackQuery], state: FSMContex
     
     video_path = Path(video_path_str)
     
-    # Show processing message
-    processing_text = "⏳ Processing video..."
-    if edit_message_id:
-        try:
-            await msg.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=edit_message_id,
-                text=processing_text
-            )
-        except TelegramBadRequest as e:
-            # Ignore message not modified errors
-            if "message is not modified" in str(e):
-                pass
-            else:
-                # For other errors, log and continue
-                logger.error(f"TelegramBadRequest in process_video: {e}")
-    else:
+    # Show processing message only if we're not editing an existing message
+    if not edit_message_id:
+        processing_text = "⏳ Processing video..."
         try:
             await msg.edit_text(processing_text)
         except TelegramBadRequest as e:
@@ -743,33 +729,35 @@ async def process_video(message: Union[Message, CallbackQuery], state: FSMContex
             operation_text = f"{i18n['extract_audio_operation']['result_text']} {audio_format.upper()} {i18n['extract_audio_operation']['with_bitrate']} {bitrate}"
         
         elif operation == "trim":
-            trim_start = data.get("trim_start", 0)
-            trim_end = data.get("trim_end")
-            result_file = video_processor.trim_video(video_path, trim_start, trim_end)
-            trim_end_text = f" {i18n['trim_operation']['to']} {trim_end} {i18n['trim_operation']['sec']}" if trim_end else f" {i18n['trim_operation']['to_end']}"
-            operation_text = f"{i18n['trim_operation']['result_text']} ({i18n['trim_operation']['from']} {trim_start} {i18n['trim_operation']['sec']}{trim_end_text})"
+            try:
+                trim_start = data.get("trim_start", 0)
+                trim_end = data.get("trim_end")
+                result_file = video_processor.trim_video(video_path, trim_start, trim_end)
+                if trim_end:
+                    operation_text = f"{i18n['trim_operation']['result_text']} ({i18n['trim_operation']['from']} {trim_start} {i18n['trim_operation']['sec']} {i18n['trim_operation']['to']} {trim_end} {i18n['trim_operation']['sec']})"
+                else:
+                    operation_text = f"{i18n['trim_operation']['result_text']} ({i18n['trim_operation']['from']} {trim_start} {i18n['trim_operation']['sec']} {i18n['trim_operation']['to_end']})"
+            except KeyError as e:
+                logger.error(f"Missing localization key for trim operation: {e}")
+                operation_text = f"trimming (from {trim_start} sec to {trim_end if trim_end else 'end'})"
         
         # Check if processing was successful
         if not result_file:
-            raise Exception("Не удалось обработать видео.")
-        
-        # Получаем локализацию
-        i18n = await get_i18n_for_user(chat_id)
+            raise Exception("Failed to process video.")
         
         # Send the processed file
         success_text = f"{i18n['common']['processing_success']} {operation_text}:"
-        if edit_message_id:
-            await msg.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=edit_message_id,
-                text=success_text,
-                reply_markup=None  # Убираем клавиатуру
-            )
-        else:
-            await msg.edit_text(
-                text=success_text,
-                reply_markup=None  # Убираем клавиатуру
-            )
+        if not edit_message_id:
+            try:
+                await msg.edit_text(
+                    text=success_text,
+                    reply_markup=None  # Убираем клавиатуру
+                )
+            except TelegramBadRequest as e:
+                if "message is not modified" in str(e):
+                    pass
+                else:
+                    logger.error(f"TelegramBadRequest in process_video: {e}")
         
         # Send file based on type
         if operation == "extract_audio":
@@ -791,15 +779,25 @@ async def process_video(message: Union[Message, CallbackQuery], state: FSMContex
         
     except Exception as e:
         logger.error(f"Error processing video: {str(e)}")
-        error_text = f"❌ Произошла ошибка при обработке видео: {str(e)}"
-        if edit_message_id:
-            await msg.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=edit_message_id,
-                text=error_text
-            )
-        else:
-            await msg.edit_text(error_text)
+        error_text = f"❌ An error occurred while processing the video: {str(e)}"
+        if not edit_message_id:
+            try:
+                await msg.edit_text(error_text)
+            except TelegramBadRequest as e:
+                if "message is not modified" in str(e):
+                    pass
+                else:
+                    logger.error(f"TelegramBadRequest in process_video: {e}")
     
     # Clear state
     await state.clear()
+
+
+def register_video_handlers(main_router: Router) -> None:
+    """
+    Register video handlers with the main router.
+    
+    Args:
+        main_router: Main router instance to include video handlers
+    """
+    main_router.include_router(router)

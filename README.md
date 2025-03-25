@@ -20,6 +20,7 @@ This is a Telegram bot that allows users to process video files. The bot is buil
 - **URL Download**: yt-dlp
 - **State Management**: FSM with MemoryStorage
 - **Configuration**: Environment variables with python-dotenv
+- **Containerization**: Docker & Docker Compose
 
 ## Project Structure
 
@@ -28,6 +29,8 @@ video_converter_bot/
 ├── bot.py                 # Main entry point
 ├── .env                   # Environment variables
 ├── requirements.txt       # Dependencies
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose configuration
 ├── handlers/              # Telegram message handlers
 │   ├── commands.py        # Command handlers
 │   └── video_handlers.py  # Video processing handlers
@@ -41,6 +44,41 @@ video_converter_bot/
 ```
 
 ## Installation
+
+### Using Docker (Recommended)
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd video_converter_bot
+```
+
+2. Configure environment variables in `.env` file:
+```
+BOT_TOKEN=your_telegram_bot_token
+FFMPEG_PATH=/usr/bin/ffmpeg
+MAX_REQUESTS_PER_MINUTE=5
+MAX_FILE_SIZE_MB=50
+ADMIN_USER_IDS=123456789,987654321
+TEMP_DIR=./temp
+```
+
+3. Build and start the bot using Docker Compose:
+```bash
+docker-compose up -d --build
+```
+
+4. View logs:
+```bash
+docker-compose logs -f
+```
+
+5. Stop the bot:
+```bash
+docker-compose down
+```
+
+### Manual Installation
 
 1. Clone the repository:
 ```bash
@@ -79,18 +117,18 @@ ADMIN_USER_IDS=123456789,987654321
 TEMP_DIR=./temp
 ```
 
-## Usage
-
-1. Start the bot:
+5. Start the bot:
 ```bash
 python bot.py
 ```
 
-2. Open Telegram and start a conversation with your bot.
+## Usage
 
-3. Send a video file or a URL to a video.
+1. Open Telegram and start a conversation with your bot.
 
-4. Follow the bot's instructions to process the video.
+2. Send a video file or a URL to a video.
+
+3. Follow the bot's instructions to process the video.
 
 ## Future Enhancements
 

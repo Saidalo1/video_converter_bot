@@ -1,6 +1,6 @@
 """
-Configuration module for the video converter bot.
-Loads and validates environment variables.
+Configuration management.
+Loads environment variables and provides configuration values.
 """
 import os
 import logging
@@ -24,8 +24,13 @@ if admin_ids_str:
 
 
 class Config(BaseModel):
-    """Bot configuration settings loaded from environment variables."""
+    """Configuration class that loads and validates environment variables."""
     
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Create temp directory if it doesn't exist
+        os.makedirs(self.TEMP_DIR, exist_ok=True)
+
     # Bot settings
     BOT_TOKEN: str
     
@@ -42,8 +47,12 @@ class Config(BaseModel):
     # File storage
     TEMP_DIR: Path = Path("./temp")
     
-    # Валидатор для ADMIN_USER_IDS больше не используется, так как мы обрабатываем
-    # значение перед созданием экземпляра Config
+    # Telegram API credentials
+    API_ID: Optional[str] = None
+    API_HASH: Optional[str] = None
+    
+    # Telegram API URL (for local Bot API server)
+    TELEGRAM_API_URL: str = "https://api.telegram.org"
     
     @field_validator("TEMP_DIR", mode="after")
     @classmethod
@@ -70,4 +79,9 @@ config = Config(
     MAX_FILE_SIZE_MB=int(os.getenv("MAX_FILE_SIZE_MB", 50)),
     ADMIN_USER_IDS=admin_ids,
     TEMP_DIR=Path(os.getenv("TEMP_DIR", "./temp")),
+    API_ID=os.getenv("API_ID"),
+    API_HASH=os.getenv("API_HASH"),
+    RATE_LIMIT_REQUESTS=int(os.getenv("RATE_LIMIT_REQUESTS", 5)),
+    RATE_LIMIT_PERIOD=int(os.getenv("RATE_LIMIT_PERIOD", 60)),
+    TELEGRAM_API_URL=os.getenv("TELEGRAM_API_URL", "https://api.telegram.org"),
 )

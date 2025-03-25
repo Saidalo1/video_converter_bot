@@ -2,6 +2,7 @@
 Command handlers for the Telegram bot.
 Handles user commands like /start, /help, etc.
 """
+from typing import Union
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
@@ -16,6 +17,16 @@ from services.downloader import video_downloader
 
 # Create router for command handlers
 router = Router()
+
+
+def register_command_handlers(main_router: Router) -> None:
+    """
+    Register command handlers with the main router.
+    
+    Args:
+        main_router: Main router instance to include command handlers
+    """
+    main_router.include_router(router)
 
 
 @router.message(Command("start"))
@@ -53,7 +64,7 @@ async def cmd_start(message: Message) -> None:
 @router.message(Command("help"))
 @router.callback_query(F.data == "help")
 @router.message(F.text == "❓ Помощь")
-async def cmd_help(event: Message | CallbackQuery) -> None:
+async def cmd_help(event: Union[Message, CallbackQuery]) -> None:
     """
     Handler for the /help command and help button.
     
